@@ -1,65 +1,98 @@
 # Neuroevolução no Atari Skiing
 
-Projeto desenvolvido para a disciplina de Fundamentos de Inteligência Artificial, com o objetivo de implementar um algoritmo evolutivo capaz de otimizar os pesos de uma rede neural que controla um agente no ambiente `ALE/Skiing-v5`.
+Projeto desenvolvido na disciplina de Fundamentos de Inteligência Artificial. A proposta foi utilizar um algoritmo evolutivo para ajustar os pesos de uma rede neural responsável por controlar um agente no jogo Atari Skiing.
 
-## 1. Implementação
+## Ambiente e implementação
 
-O agente utiliza uma rede neural feedforward com a seguinte arquitetura:
+Foi utilizado o ambiente `ALE/Skiing-v5`, com observação pela memória RAM do Atari (`obs_type="ram"`).
 
-- **Entrada:** 128 valores da memória RAM do Atari, normalizados entre 0 e 1.
-- **Camada oculta:** 16 neurônios com ativação `tanh`.
-- **Saída:** 3 neurônios correspondentes às ações NOOP, RIGHT e LEFT.
+Cada agente possui uma rede neural com 128 entradas, 16 neurônios na camada oculta e 3 saídas, correspondentes às ações NOOP, RIGHT e LEFT. Os valores da RAM são normalizados, e a rede utiliza a função `tanh` na camada oculta.
 
-A ação é escolhida pelo maior valor produzido na camada de saída (`argmax`).
+O fitness é calculado pela soma das recompensas recebidas durante uma partida. Como as pontuações são negativas, quanto mais próximo de zero, melhor o resultado.
 
-O algoritmo evolutivo utiliza:
+## Configuração do algoritmo
 
-- População de 20 agentes.
-- 30 gerações.
-- Seleção por torneio com 3 candidatos.
-- Elitismo dos 2 melhores agentes.
-- Reprodução por cópia dos pesos, sem crossover.
-- Mutação por ruído gaussiano.
+| Parâmetro | Valor |
+|---|---|
+| População | 20 agentes |
+| Gerações | 30 |
+| Seleção | Torneio com 3 agentes |
+| Elitismo | 2 melhores agentes |
+| Taxa de mutação padrão | 10% |
+| Intensidade padrão | 0,20 |
+| Reprodução | Cópia dos pesos, sem crossover |
 
-O fitness corresponde à recompensa acumulada durante cada episódio. Como as recompensas do Skiing são negativas, valores maiores (menos negativos) representam melhor desempenho.
+A seleção é feita por torneio: três agentes são escolhidos aleatoriamente, e o de maior fitness é selecionado como pai. Esse método favorece os melhores indivíduos sem limitar a seleção apenas a eles.
 
-## 2. Experimentos
+Os dois melhores agentes são preservados a cada geração. Os demais são criados por cópia e mutação dos pesos dos pais selecionados.
 
-Foram realizados três experimentos com diferentes configurações de mutação:
+A mutação adiciona ruído gaussiano aos parâmetros da rede neural.
 
-| Experimento | Taxa de mutação | Intensidade | Melhor fitness |
-|---|---|---|---|
+## Experimentos
+
+Foram testadas três configurações de mutação, mantendo 20 agentes e 30 gerações em cada execução.
+
+| Experimento | Taxa | Intensidade | Melhor fitness |
+|---|---:|---:|---:|
 | A | 1% | 0,05 | -7902 |
 | B | 10% | 0,20 | -6528 |
 | C | 40% | 0,50 | -6528 |
 
-Os experimentos B e C apresentaram o maior fitness observado.
+Os experimentos B e C tiveram os melhores resultados, ambos com fitness de -6528. O experimento A ficou em -7902.
 
-Os históricos de cada execução e o gráfico comparativo estão disponíveis em `resultados/experimentos/`.
+O gráfico comparativo está em `resultados/experimentos/comparacao.png`.
 
-## 3. Comparação com agente aleatório
+## Evolução do fitness
 
-Foi implementado um agente que seleciona ações aleatórias, avaliado em cinco episódios.
+O gráfico abaixo mostra o melhor fitness e a média da população ao longo das 30 gerações do treinamento principal.
 
-| Métrica | Fitness |
+![Evolução do fitness](resultados/fitness.png)
+
+No treinamento principal, o melhor fitness encontrado foi -7520. A média da população apresentou oscilações ao longo das gerações, mesmo após a identificação de agentes com pontuações melhores.
+
+## Exploração e convergência
+
+A exploração acontece principalmente na mutação, quando os pesos e vieses dos descendentes são alterados aleatoriamente. Mutações menores produzem alterações mais discretas, enquanto mutações maiores permitem explorar soluções mais diferentes das anteriores.
+
+Nos nossos experimentos, as configurações B e C encontraram resultados superiores à configuração A. Isso indica que, nessas execuções, uma mutação mais intensa favoreceu a descoberta de agentes com recompensas melhores.
+
+Por outro lado, os melhores valores de fitness ficaram estabilizados durante várias gerações, enquanto a média continuou oscilando. Isso indica uma estabilização dos melhores resultados, mas não uma convergência completa da população.
+
+Na visualização de um agente treinado, percebemos que ele utilizava quase sempre a ação NOOP: foram 527 ações NOOP, 3 LEFT e nenhuma RIGHT. Portanto, apesar da melhora no fitness, o agente ainda não desenvolveu uma estratégia consistente de movimentação pelas bandeiras.
+
+## Comparação com agente aleatório
+
+Também testamos um agente que escolhe suas ações aleatoriamente, em cinco partidas.
+
+| Execução | Fitness |
+|---|---:|
+| 1 | -14364 |
+| 2 | -15681 |
+| 3 | -16480 |
+| 4 | -16166 |
+| 5 | -16817 |
+| **Média** | **-15901,60** |
+
+O melhor fitness encontrado pela neuroevolução (-6528) foi superior ao melhor resultado do agente aleatório (-14364).
+
+Essa comparação considera os resultados observados, sem uma avaliação estatística mais ampla ou testes repetidos dos agentes evoluídos nas mesmas condições.
+
+## Organização do código
+
+| Arquivo | Responsabilidade |
 |---|---|
-| Média | -15901,60 |
-| Melhor | -14364 |
-| Pior | -16817 |
+| `agente.py` | Rede neural e escolha das ações |
+| `ambiente.py` | Avaliação e cálculo do fitness |
+| `populacao.py` | Criação dos agentes |
+| `evolucao.py` | Seleção, mutação e elitismo |
+| `main.py` | Execução das 30 gerações |
+| `experimentos.py` | Experimentos A, B e C |
+| `resultados.py` | Salvamento dos gráficos, CSVs e pesos |
+| `teste_aleatorio.py` | Comparação com agente aleatório |
+| `visualizar_agente.py` | Visualização do agente treinado |
+| `config.py` | Parâmetros do treinamento |
 
-Os melhores episódios dos agentes evoluídos apresentaram recompensas superiores às observadas no agente aleatório.
-
-Entretanto, a comparação é exploratória, pois não foram realizadas múltiplas execuções independentes de cada configuração evolutiva.
-
-## 4. Resultados e limitações
-
-Os experimentos demonstraram melhora do fitness ao longo do processo evolutivo.
-
-Na visualização de um agente treinado, observou-se predominância da ação NOOP, indicando que a melhora na recompensa não necessariamente corresponde à aprendizagem de uma estratégia eficiente para ultrapassar as bandeiras.
-
-A avaliação também está sujeita à aleatoriedade do ambiente, o que pode produzir recompensas diferentes para uma mesma rede neural.
-
-## 5. Como executar
+## Como executar
 
 Instale as dependências:
 
@@ -67,36 +100,36 @@ Instale as dependências:
 pip install -r requirements.txt
 ```
 
-Execute o treinamento principal:
+Treinamento principal:
 
 ```bash
 python main.py
 ```
 
-Execute os experimentos A, B e C:
+Experimentos de mutação:
 
 ```bash
 python experimentos.py
 ```
 
-Execute a comparação com o agente aleatório:
+Teste com agente aleatório:
 
 ```bash
 python teste_aleatorio.py
 ```
 
-Visualize o agente treinado:
+Visualização do agente salvo:
 
 ```bash
 python visualizar_agente.py
 ```
 
-## 6. Arquivos de resultados
+As configurações já estão definidas no código, sem necessidade de alterações manuais para executar os experimentos.
 
-- `resultados/fitness.csv`: histórico do treinamento principal.
-- `resultados/fitness.png`: gráfico de evolução do fitness.
-- `resultados/melhor_agente.npz`: pesos do melhor agente do treinamento principal.
-- `resultados/experimentos/fitness_A.csv`, `fitness_B.csv` e `fitness_C.csv`: históricos dos experimentos.
-- `resultados/experimentos/comparacao.png`: comparação entre os experimentos.
-- `resultados/experimentos/resumo.csv`: resumo dos resultados.
-- `resultados/experimentos/melhor_agente_A.npz`, `melhor_agente_B.npz` e `melhor_agente_C.npz`: pesos dos melhores agentes de cada experimento.
+Os históricos, gráficos e pesos das redes treinadas estão na pasta `resultados/`.
+
+## Considerações finais
+
+O algoritmo conseguiu melhorar o fitness ao longo das gerações, e os experimentos mostraram diferenças entre as configurações de mutação.
+
+A principal limitação foi o comportamento dos agentes, que ainda apresentaram pouca movimentação durante o jogo. Para melhorar isso, poderíamos testar uma função de fitness que valorizasse diretamente a passagem pelas bandeiras, além de avaliar cada agente em mais de uma partida para reduzir a influência da aleatoriedade.
