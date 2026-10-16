@@ -1,0 +1,4 @@
+experimento,taxa_mutacao,intensidade,melhor_fitness,media_final
+A,0.01,0.05,-7902.0,-11116.4
+B,0.1,0.2,-6528.0,-14128.8
+C,0.4,0.5,-6528.0,-12837.75

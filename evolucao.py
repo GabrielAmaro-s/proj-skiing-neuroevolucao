@@ -1,84 +1,60 @@
 
+import copy
 import random
 import numpy as np
-import copy
-from config import TAMANHO_POPULACAO, NUM_ELITE
-from config import TAXA_MUTACAO, INTENSIDADE_MUTACAO
+
+from config import (
+    TAMANHO_POPULACAO,
+    TAXA_MUTACAO,
+    INTENSIDADE_MUTACAO,
+    NUM_ELITE
+)
 
 
 def selecionar(populacao, tamanho_torneio=3):
-
-    # Escolhe três agentes aleatórios da população
-    candidatos = random.sample(
-        populacao,
-        tamanho_torneio
-    )
-
-    # Retorna o agente com maior fitness
-    vencedor = max(
-        candidatos,
-        key=lambda agente: agente.fitness
-    )
-
-    return vencedor
+    candidatos = random.sample(populacao, tamanho_torneio)
+    return max(candidatos, key=lambda agente: agente.fitness)
 
 
-
-def mutar(agente):
-
-    # Percorre os parâmetros da rede neural
-    for parametro in ["W1", "b1", "W2", "b2"]:
-
+def mutar(
+    agente,
+    taxa_mutacao=TAXA_MUTACAO,
+    intensidade_mutacao=INTENSIDADE_MUTACAO
+):
+    for parametro in ("W1", "b1", "W2", "b2"):
         pesos = getattr(agente, parametro)
 
-        # Define quais pesos sofrerão mutação
-        mascara = np.random.random(
-            pesos.shape
-        ) < TAXA_MUTACAO
-
-        # Gera alterações aleatórias
+        mascara = np.random.random(pesos.shape) < taxa_mutacao
         alteracoes = np.random.normal(
-            0,
-            INTENSIDADE_MUTACAO,
-            pesos.shape
+            0, intensidade_mutacao, pesos.shape
         )
 
-        # Aplica mutação somente nos pesos selecionados
         pesos[mascara] += alteracoes[mascara]
 
     return agente
 
-def nova_geracao(populacao):
 
-    # Ordenar agentes do melhor para o pior
+def nova_geracao(
+    populacao,
+    taxa_mutacao=TAXA_MUTACAO,
+    intensidade_mutacao=INTENSIDADE_MUTACAO
+):
     populacao_ordenada = sorted(
         populacao,
         key=lambda agente: agente.fitness,
         reverse=True
     )
 
-    nova_populacao = []
+    nova_populacao = [
+        copy.deepcopy(agente)
+        for agente in populacao_ordenada[:NUM_ELITE]
+    ]
 
-    # ELITISMO: preservar os melhores agentes
-    for agente in populacao_ordenada[:NUM_ELITE]:
-
-        elite = copy.deepcopy(agente)
-
-        nova_populacao.append(elite)
-
-    # REPRODUÇÃO: completar a nova população
     while len(nova_populacao) < TAMANHO_POPULACAO:
-
-        # Selecionar um pai por torneio
         pai = selecionar(populacao)
-
-        # Criar uma cópia independente
         filho = copy.deepcopy(pai)
 
-        # Aplicar mutação no filho
-        mutar(filho)
-
-        # O filho ainda não foi avaliado
+        mutar(filho, taxa_mutacao, intensidade_mutacao)
         filho.fitness = 0.0
 
         nova_populacao.append(filho)
